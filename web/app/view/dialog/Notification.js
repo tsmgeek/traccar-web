@@ -1,6 +1,6 @@
 /*
- * Copyright 2017 Anton Tananaev (anton@traccar.org)
- * Copyright 2017 Andrey Kunitsyn (andrey@traccar.org)
+ * Copyright 2017 - 2018 Anton Tananaev (anton@traccar.org)
+ * Copyright 2017 - 2018 Andrey Kunitsyn (andrey@traccar.org)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,12 @@
 Ext.define('Traccar.view.dialog.Notification', {
     extend: 'Traccar.view.dialog.BaseEdit',
 
+    requires: [
+        'Traccar.view.ClearableComboBox',
+        'Traccar.view.dialog.NotificationController'
+    ],
+
+    controller: 'notification',
     title: Strings.sharedNotification,
 
     items: {
@@ -35,7 +41,10 @@ Ext.define('Traccar.view.dialog.Notification', {
                 displayField: 'name',
                 valueField: 'type',
                 editable: false,
-                allowBlank: false
+                allowBlank: false,
+                listeners: {
+                    change: 'onTypeChange'
+                }
             }, {
                 xtype: 'checkboxfield',
                 inputValue: true,
@@ -43,23 +52,43 @@ Ext.define('Traccar.view.dialog.Notification', {
                 name: 'always',
                 fieldLabel: Strings.notificationAlways
             }, {
-                xtype: 'checkboxfield',
-                inputValue: true,
-                uncheckedValue: false,
-                name: 'web',
-                fieldLabel: Strings.notificationWeb
+                xtype: 'tagfield',
+                reference: 'alarmsField',
+                fieldLabel: Strings.sharedAlarms,
+                maxWidth: Traccar.Style.formFieldWidth,
+                store: 'AlarmTypes',
+                valueField: 'key',
+                displayField: 'name',
+                queryMode: 'local',
+                hidden: true,
+                listeners: {
+                    beforerender: 'onAlarmsLoad',
+                    change: 'onAlarmsChange'
+                }
             }, {
-                xtype: 'checkboxfield',
-                inputValue: true,
-                uncheckedValue: false,
-                name: 'mail',
-                fieldLabel: Strings.notificationMail
-            }, {
-                xtype: 'checkboxfield',
-                inputValue: true,
-                uncheckedValue: false,
-                name: 'sms',
-                fieldLabel: Strings.notificationSms
+                xtype: 'tagfield',
+                fieldLabel: Strings.notificationNotificators,
+                name: 'notificators',
+                maxWidth: Traccar.Style.formFieldWidth,
+                store: 'AllNotificators',
+                valueField: 'type',
+                displayField: 'name',
+                queryMode: 'local'
+            }]
+        }, {
+            xtype: 'fieldset',
+            title: Strings.sharedExtra,
+            collapsible: true,
+            collapsed: true,
+            items: [{
+                xtype: 'clearableComboBox',
+                reference: 'calendarCombo',
+                name: 'calendarId',
+                store: 'Calendars',
+                queryMode: 'local',
+                displayField: 'name',
+                valueField: 'id',
+                fieldLabel: Strings.sharedCalendar
             }]
         }]
     }

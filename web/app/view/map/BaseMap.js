@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 - 2017 Anton Tananaev (anton@traccar.org)
+ * Copyright 2016 - 2018 Anton Tananaev (anton@traccar.org)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ Ext.define('Traccar.view.map.BaseMap', {
     },
 
     initMap: function () {
-        var server, layer, type, bingKey, lat, lon, zoom, maxZoom, target;
+        var server, layer, type, bingKey, lat, lon, zoom, maxZoom, target, poiLayer, self = this;
 
         server = Traccar.app.getServer();
 
@@ -41,12 +41,8 @@ Ext.define('Traccar.view.map.BaseMap', {
             case 'custom':
                 layer = new ol.layer.Tile({
                     source: new ol.source.XYZ({
-                        url: server.get('mapUrl'),
-                        attributions: [
-                            new ol.Attribution({
-                                html: ''
-                            })
-                        ]
+                        url: Ext.String.htmlDecode(server.get('mapUrl')),
+                        attributions: ''
                     })
                 });
                 break;
@@ -78,14 +74,8 @@ Ext.define('Traccar.view.map.BaseMap', {
                 layer = new ol.layer.Tile({
                     source: new ol.source.XYZ({
                         url: 'https://cartodb-basemaps-{a-d}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-                        attributions: [
-                            new ol.Attribution({
-                                html: [
-                                    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-                                    'contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                                ]
-                            })
-                        ]
+                        attributions: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
+                            'contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
                     })
                 });
                 break;
@@ -106,7 +96,7 @@ Ext.define('Traccar.view.map.BaseMap', {
                             if (y < 0) {
                                 y = 'M' + -y;
                             }
-                            return 'http://online{}.map.bdimg.com/onlinelabel/?qt=tile&x={x}&y={y}&z={z}&styles=pl'
+                            return 'https://online{}.map.bdimg.com/onlinelabel/?qt=tile&x={x}&y={y}&z={z}&styles=pl'
                                 .replace('{}', index).replace('{x}', x).replace('{y}', y).replace('{z}', z);
                         },
                         tileGrid: new ol.tilegrid.TileGrid({
@@ -118,11 +108,7 @@ Ext.define('Traccar.view.map.BaseMap', {
                                 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1, 0.5
                             ]
                         }),
-                        attributions: [
-                            new ol.Attribution({
-                                html: '&copy; <a href="http://map.baidu.com/">Baidu</a>'
-                            })
-                        ]
+                        attributions: '&copy; <a href="https://map.baidu.com/">Baidu</a>'
                     })
                 });
                 break;
@@ -131,11 +117,7 @@ Ext.define('Traccar.view.map.BaseMap', {
                     source: new ol.source.XYZ({
                         url: 'https://vec0{1-4}.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}',
                         projection: 'EPSG:3395',
-                        attributions: [
-                            new ol.Attribution({
-                                html: '&copy; <a href="https://yandex.com/maps/">Yandex</a>'
-                            })
-                        ]
+                        attributions: '&copy; <a href="https://yandex.com/maps/">Yandex</a>'
                     })
                 });
                 break;
@@ -144,18 +126,22 @@ Ext.define('Traccar.view.map.BaseMap', {
                     source: new ol.source.XYZ({
                         url: 'https://sat0{1-4}.maps.yandex.net/tiles?l=sat&x={x}&y={y}&z={z}',
                         projection: 'EPSG:3395',
-                        attributions: [
-                            new ol.Attribution({
-                                html: '&copy; <a href="https://yandex.com/maps/">Yandex</a>'
-                            })
-                        ]
+                        attributions: '&copy; <a href="https://yandex.com/maps/">Yandex</a>'
                     })
+                });
+                break;
+            case 'osm':
+                layer = new ol.layer.Tile({
+                    source: new ol.source.OSM({})
                 });
                 break;
             default:
                 layer = new ol.layer.Tile({
-                    source: new ol.source.OSM({})
+                    source: new ol.source.OSM({
+                        url: 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png'
+                    })
                 });
+                break;
         }
 
         lat = Traccar.app.getPreference('latitude', Traccar.Style.mapDefaultLat);
@@ -174,6 +160,17 @@ Ext.define('Traccar.view.map.BaseMap', {
             layers: [layer],
             view: this.mapView
         });
+
+        poiLayer = Traccar.app.getPreference('poiLayer', null);
+
+        if (poiLayer) {
+            this.map.addLayer(new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    url: poiLayer,
+                    format: new ol.format.KML()
+                })
+            }));
+        }
 
         this.body.dom.tabIndex = 0;
 
@@ -210,19 +207,19 @@ Ext.define('Traccar.view.map.BaseMap', {
         });
 
         this.map.on('click', function (e) {
-            var i, features = this.map.getFeaturesAtPixel(e.pixel, {
+            var i, features = self.map.getFeaturesAtPixel(e.pixel, {
                 layerFilter: function (layer) {
                     return !layer.get('name');
                 }
             });
             if (features) {
                 for (i = 0; i < features.length; i++) {
-                    this.fireEvent('selectfeature', features[i]);
+                    self.fireEvent('selectfeature', features[i]);
                 }
             } else {
-                this.fireEvent('deselectfeature');
+                self.fireEvent('deselectfeature');
             }
-        }, this);
+        });
     },
 
     listeners: {
@@ -235,7 +232,12 @@ Ext.define('Traccar.view.map.BaseMap', {
         }
     }
 }, function () {
+    var projection;
     proj4.defs('BD-MC', '+proj=merc +lon_0=0 +units=m +ellps=clrk66 +no_defs');
     proj4.defs('EPSG:3395', '+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs');
-    ol.proj.get('EPSG:3395').setExtent([-20037508.342789244, -20037508.342789244, 20037508.342789244, 20037508.342789244]);
+    ol.proj.proj4.register(proj4);
+    projection = ol.proj.get('EPSG:3395');
+    if (projection) {
+        projection.setExtent([-20037508.342789244, -20037508.342789244, 20037508.342789244, 20037508.342789244]);
+    }
 });

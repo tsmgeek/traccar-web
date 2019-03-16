@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 - 2017 Anton Tananaev (anton@traccar.org)
+ * Copyright 2015 - 2018 Anton Tananaev (anton@traccar.org)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@ Ext.define('Traccar.view.dialog.Server', {
     extend: 'Traccar.view.dialog.BaseEdit',
 
     requires: [
+        'Traccar.view.ClearableComboBox',
         'Traccar.view.dialog.MapPickerController'
     ],
 
@@ -27,23 +28,29 @@ Ext.define('Traccar.view.dialog.Server', {
 
     items: {
         xtype: 'form',
+        listeners: {
+            afterrender: function (view) {
+                var field = view.up('panel').lookupReference('mapUrlField');
+                field.setValue(Ext.String.htmlDecode(field.getValue()));
+            }
+        },
         items: [{
             xtype: 'fieldset',
             title: Strings.sharedPreferences,
             items: [{
-                xtype: 'combobox',
+                xtype: 'clearableComboBox',
                 name: 'map',
                 fieldLabel: Strings.mapLayer,
                 store: 'MapTypes',
                 displayField: 'name',
-                valueField: 'key',
-                editable: false
+                valueField: 'key'
             }, {
                 xtype: 'textfield',
                 name: 'bingKey',
                 fieldLabel: Strings.mapBingKey
             }, {
                 xtype: 'textfield',
+                reference: 'mapUrlField',
                 name: 'mapUrl',
                 fieldLabel: Strings.mapCustom
             }, {
@@ -76,13 +83,16 @@ Ext.define('Traccar.view.dialog.Server', {
                 name: 'forceSettings',
                 fieldLabel: Strings.serverForceSettings
             }, {
-                xtype: 'combobox',
+                xtype: 'clearableComboBox',
                 name: 'coordinateFormat',
                 fieldLabel: Strings.settingsCoordinateFormat,
                 store: 'CoordinateFormats',
                 displayField: 'name',
-                valueField: 'key',
-                editable: false
+                valueField: 'key'
+            }, {
+                xtype: 'textfield',
+                name: 'poiLayer',
+                fieldLabel: Strings.mapPoiLayer
             }]
         }, {
             xtype: 'fieldset',
